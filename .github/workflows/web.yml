@@ -30,16 +30,16 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
-        run: yarn install
+        run: npm install
 
       - name: Run linters
-        run: yarn lint
+        run: npm lint
 
       # - name: Run test
       #   run: yarn coverage
 
       - name: Build
-        run: yarn build
+        run: npm build
 
       - name: Setup Pages
         uses: actions/configure-pages@v2
