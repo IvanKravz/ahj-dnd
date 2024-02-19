@@ -1,4 +1,4 @@
-name: ahj-events
+name: ahj-dnd
 
 on: [push, pull_request]
 
@@ -30,16 +30,16 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
-        run: npm install
+        run: yarn install
 
       - name: Run linters
-        run: npm run lint
+        run: yarn lint
 
       # - name: Run test
       #   run: yarn coverage
 
       - name: Build
-        run: npm run build
+        run: yarn build
 
       - name: Setup Pages
         uses: actions/configure-pages@v2
@@ -52,3 +52,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v1
+
