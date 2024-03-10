@@ -100,15 +100,14 @@ export default class PageController {
         animation: 300,
         draggable: ".card",
         forceFallback: true,
-        onChoose: (e) => {
+        onChoose: () => {
           document.body.classList.add("grabbing");
         },
-        onUnchoose: (e) => {
+        onUnchoose: () => {
           document.body.classList.remove("grabbing");
         },
       })
     }
-   
    
     this.pageLoad.cardsContainer.addEventListener('mousedown', (event) => {
       const targetCard = event.target;
@@ -117,7 +116,7 @@ export default class PageController {
         PageLoad.deleteCard(targetCard);
       }
     });
-  };
+  }
 
   save() {
     const data = {
@@ -140,7 +139,7 @@ export default class PageController {
     });
 
     this.stateService.save(data);
-  };
+  }
 
   load() {
     const data = this.stateService.load();
@@ -156,5 +155,5 @@ export default class PageController {
         PageLoad.createCard(this.done, item);
       });
     }
-  };
+  }
 }
