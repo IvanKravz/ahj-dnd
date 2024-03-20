@@ -1,5 +1,4 @@
 import PageLoad from './PageLoad';
-import Sortable from "sortablejs";
 
 export default class PageController {
   constructor(pageLoad, stateService) {
@@ -51,7 +50,6 @@ export default class PageController {
       });
     });
 
-   
     this.pageLoad.forms.forEach((item) => item.addEventListener('submit', (event) => {
       event.preventDefault();
 
@@ -82,33 +80,16 @@ export default class PageController {
       if (!card) {
         return;
       }
-      const previousEl = event.target;
       const currentEl = event.relatedTarget;
-      if (!(previousEl.classList.contains('card') && currentEl.classList.contains('input-text'))
-        && !(previousEl.classList.contains('card') && currentEl.classList.contains('delete-btn'))) {
+
+      if (!(card && currentEl.classList.contains('input-text'))
+        && !(card && currentEl.classList.contains('delete-btn'))) {
         const cardEl = event.target;
         const delBtn = cardEl.querySelector('.delete-btn');
         delBtn.classList.add('hidden');
       }
     });
 
-    const columnsCards = document.querySelectorAll(".cards");
-
-    for (const columnCard of columnsCards) {
-      new Sortable(columnCard, {
-        group: "shared",
-        animation: 300,
-        draggable: ".card",
-        forceFallback: true,
-        onChoose: () => {
-          document.body.classList.add("grabbing");
-        },
-        onUnchoose: () => {
-          document.body.classList.remove("grabbing");
-        },
-      })
-    }
-   
     this.pageLoad.cardsContainer.addEventListener('mousedown', (event) => {
       const targetCard = event.target;
 
@@ -116,7 +97,102 @@ export default class PageController {
         PageLoad.deleteCard(targetCard);
       }
     });
-  }
+
+    window.addEventListener("load", () => {
+
+    const items = document.querySelectorAll(".card");
+    let current = null;
+    const boxes = document.querySelectorAll('.cards');
+
+    for (let item of items) {
+      item.draggable = true;
+      
+      item.addEventListener('dragstart', function(e) {
+        e.dataTransfer.effectAllowed = 'copyMove';
+
+        let selected = e.target;
+        current = item;
+      
+        for (let it of items) {
+          if (it !== current) {
+            it.classList.add('hint');
+          }
+        }
+
+        for (let box of boxes) {
+          box.addEventListener('dragover', function(e) {
+            e.preventDefault();
+          });
+
+          box.addEventListener('drop', function(e) {
+            const targetPos = document.elementFromPoint(e.clientX, e.clientY);
+            const targetCards = targetPos.closest('.cards');
+            
+            if (!targetPos) {
+              return;
+            }
+            
+            if (targetCards && targetCards === targetPos) {
+              targetCards.append(selected);
+            } else if (targetCards && targetCards !== targetPos) {
+              const card = targetPos.closest('.card');
+              card.after(selected);
+            }
+
+            e.target.classList.remove("box--hovered");
+
+          });
+          
+          box.addEventListener('dragenter', function(e) {
+            e.dataTransfer.dropEffect = 'copy';
+            const card = e.target.classList.contains('card');
+            const text = e.target.classList.contains('input-text');
+
+            if (card) {
+              e.target.classList.add("box--hovered");
+            } else if (box && !text) {
+              e.target.classList.add("box--hovered");
+            }
+          })
+          
+          box.addEventListener('dragleave', function(e) {
+            e.target.classList.remove("box--hovered");
+          })
+        }
+      });
+
+      item.addEventListener('dragenter', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+          if (item !== current) {
+            let currentpos = 0,
+              droppedpos = 0;
+            for (let it = 0; it < items.length; it++) {
+              if (current === items[it]) {
+                currentpos = it;
+              }
+              if (item === items[it]) {
+                droppedpos = it;
+              }
+            }
+            if (currentpos < droppedpos) {
+              item.parentNode.insertBefore(current, item.nextSibling);
+            } else {
+              item.parentNode.insertBefore(current, item);
+            }
+          }
+      })
+      
+      item.addEventListener('dragend', function() {
+        for (let it of items) {
+          it.classList.remove("hint");      
+        }
+      });
+
+      item.ondragover = (e) => e.preventDefault();
+    }
+  })
+}
 
   save() {
     const data = {
@@ -155,5 +231,5 @@ export default class PageController {
         PageLoad.createCard(this.done, item);
       });
     }
-  }
+  } 
 }

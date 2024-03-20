@@ -49,6 +49,7 @@ export default class PageLoad {
   static createCard(column, value) {
     const card = document.createElement('div');
     card.classList.add('card');
+    card.draggable = true
     card.innerHTML = `<div class="input-text">${value}</div>\n`
       + '              <button class="delete-btn hidden">&#x2716;</button>';
     column.append(card);

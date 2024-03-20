@@ -42,6 +42,7 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
+      favicon: './src/img/Haski.png',
       template: './src/index.html',
       filename: 'index.html',
     }),
