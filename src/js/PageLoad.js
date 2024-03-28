@@ -43,15 +43,18 @@ export default class PageLoad {
     this.forms = this.container.querySelectorAll('.new-card-form');
     this.cancelBtns = this.container.querySelectorAll('.cancel-btn');
     this.inputs = this.container.querySelectorAll('.card-input');
-    this.cards = this.container.querySelectorAll('.card');
+    this.cards = this.container.querySelector('.card');
   }
 
   static createCard(column, value) {
     const card = document.createElement('div');
     card.classList.add('card');
-    card.draggable = true
-    card.innerHTML = `<div class="input-text">${value}</div>\n`
-      + '              <button class="delete-btn hidden">&#x2716;</button>';
+    card.textContent = value;
+    const deleteButton = document.createElement('button');
+    deleteButton.classList.add('delete-btn');
+    deleteButton.classList.add('hide')
+    deleteButton.innerHTML = '&#x2716'
+    card.append(deleteButton)
     column.append(card);
   }
 

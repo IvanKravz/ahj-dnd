@@ -8,5 +8,5 @@ pageLoad.bindToDOM(document.querySelector('.page'));
 
 const stateService = new StateService(localStorage);
 const pageCtrl = new PageController(pageLoad, stateService);
-
 pageCtrl.init();
+

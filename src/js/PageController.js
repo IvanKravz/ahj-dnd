@@ -1,4 +1,5 @@
 import PageLoad from './PageLoad';
+import Card from './Card';
 
 export default class PageController {
   constructor(pageLoad, stateService) {
@@ -7,6 +8,8 @@ export default class PageController {
     this.toDo = null;
     this.inProgress = null;
     this.done = null;
+    this.draggingElement = null;
+    this.draggingProection = null;
   }
 
   init() {
@@ -21,6 +24,7 @@ export default class PageController {
     this.pageLoad.elemDOM();
     this.pageLoad.drawUi();
 
+    // При нажатии на Add another card
     this.pageLoad.addCards.forEach((elem) => {
       elem.addEventListener('click', (event) => {
         event.preventDefault();
@@ -37,6 +41,8 @@ export default class PageController {
       });
     });
 
+    
+    // Удаление текста при добавлении новой карты при нажатии на Add another card
     Array.from(this.pageLoad.cancelBtns).forEach((elem) => {
       elem.addEventListener('click', (event) => {
         event.preventDefault();
@@ -50,6 +56,7 @@ export default class PageController {
       });
     });
 
+    // Добавление новой карты при нажатии на Add card
     this.pageLoad.forms.forEach((item) => item.addEventListener('submit', (event) => {
       event.preventDefault();
 
@@ -62,6 +69,8 @@ export default class PageController {
       item.classList.remove('active');
     }));
 
+    
+    // При наведении мыши на область карты
     this.pageLoad.cardsContainer.addEventListener('mouseover', (event) => {
       event.preventDefault();
 
@@ -71,128 +80,110 @@ export default class PageController {
       }
       const cardEl = event.target;
       const delBtn = cardEl.querySelector('.delete-btn');
-      delBtn.classList.remove('hidden');
+      delBtn.classList.remove('hide');
     });
 
+    // При покидании мыши области карты
     this.pageLoad.cardsContainer.addEventListener('mouseout', (event) => {
       event.preventDefault();
-      const card = event.target.classList.contains('card');
+      const cardEl = event.target;
+      const card = cardEl.classList.contains('card');
+      
       if (!card) {
         return;
       }
+      
       const currentEl = event.relatedTarget;
-
-      if (!(card && currentEl.classList.contains('input-text'))
-        && !(card && currentEl.classList.contains('delete-btn'))) {
-        const cardEl = event.target;
+      if (!(card && currentEl.classList.contains('delete-btn'))) {
         const delBtn = cardEl.querySelector('.delete-btn');
-        delBtn.classList.add('hidden');
+        delBtn.classList.add('hide');
       }
     });
 
+    // При нажатии мыши на область карты
     this.pageLoad.cardsContainer.addEventListener('mousedown', (event) => {
-      const targetCard = event.target;
-
-      if (targetCard.closest('.delete-btn')) {
-        PageLoad.deleteCard(targetCard);
+      const target = event.target;
+      
+      if (target.classList.contains('card')) {
+        this.shiftX = event.offsetX;
+        this.shiftY = event.offsetY;
+        this.setDraggingElement(target)
+        this.draggingElement.style = `
+          left: ${event.pageX - this.shiftX}px;
+          top: ${event.pageY - this.shiftY}px;
+        `
+        this.proectionAct(event)
       }
-    });
 
-    window.addEventListener("load", () => {
+      if (target.closest('.delete-btn')) {
+        PageLoad.deleteCard(target);
+      }
+    })
 
-    const items = document.querySelectorAll(".card");
-    let current = null;
-    const boxes = document.querySelectorAll('.cards');
+    // При перемещении карты
+    this.pageLoad.cardsContainer.addEventListener('mousemove', (event) => {
+      if (this.draggingElement) {
+        document.body.classList.add("grabbing");
+        const { pageX, pageY } = event;
+        const element = this.draggingElement;
+        const  { width, height } = this.draggingElement.styles;
+        element.styles = `
+          position: absolute;
+          left: ${pageX - this.shiftX}px;
+          top: ${pageY - this.shiftY}px;
+          pointer-events: none;
+          width: ${width};
+          height: ${height}; 
+        `
+      this.proectionAct(event);
+      }
+    })
 
-    for (let item of items) {
-      item.draggable = true;
-      
-      item.addEventListener('dragstart', function(e) {
-        e.dataTransfer.effectAllowed = 'copyMove';
+    // Кнопка мыши отпущена 
+    this.pageLoad.cardsContainer.addEventListener('mouseup', () => {
+      if (this.draggingElement) {
+        document.body.classList.remove("grabbing");
+        this.replaceDragging();
+        this.clear();
+      }
+    })
+  }
 
-        let selected = e.target;
-        current = item;
-      
-        for (let it of items) {
-          if (it !== current) {
-            it.classList.add('hint');
-          }
+  setDraggingElement(node) {
+    this.draggingElement = new Card(node); 
+  }
+  
+  // Рассчёт позиции вставки проекции и вставка или удаление
+  proectionAct(event) {
+    const target = event.target;
+    const element = this.draggingElement;
+    const proection = this.draggingProection
+    if (
+      target.classList.contains('card') && !target.classList.contains('proection')
+    ) {
+        const { y, height } = target.getBoundingClientRect();
+        const appendPosition = y + height / 2 > event.clientY
+          ? 'beforebegin'
+          : 'afterend';
+
+        if (!proection) {
+          this.draggingProection = element.proection;
+        } else {
+          proection.remove();
+          target.insertAdjacentElement(appendPosition, proection);
         }
-
-        for (let box of boxes) {
-          box.addEventListener('dragover', function(e) {
-            e.preventDefault();
-          });
-
-          box.addEventListener('drop', function(e) {
-            const targetPos = document.elementFromPoint(e.clientX, e.clientY);
-            const targetCards = targetPos.closest('.cards');
-            
-            if (!targetPos) {
-              return;
-            }
-            
-            if (targetCards && targetCards === targetPos) {
-              targetCards.append(selected);
-            } else if (targetCards && targetCards !== targetPos) {
-              const card = targetPos.closest('.card');
-              card.after(selected);
-            }
-
-            e.target.classList.remove("box--hovered");
-
-          });
-          
-          box.addEventListener('dragenter', function(e) {
-            e.dataTransfer.dropEffect = 'copy';
-            const card = e.target.classList.contains('card');
-            const text = e.target.classList.contains('input-text');
-
-            if (card) {
-              e.target.classList.add("box--hovered");
-            } else if (box && !text) {
-              e.target.classList.add("box--hovered");
-            }
-          })
-          
-          box.addEventListener('dragleave', function(e) {
-            e.target.classList.remove("box--hovered");
-          })
-        }
-      });
-
-      item.addEventListener('dragenter', function(e) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
-          if (item !== current) {
-            let currentpos = 0,
-              droppedpos = 0;
-            for (let it = 0; it < items.length; it++) {
-              if (current === items[it]) {
-                currentpos = it;
-              }
-              if (item === items[it]) {
-                droppedpos = it;
-              }
-            }
-            if (currentpos < droppedpos) {
-              item.parentNode.insertBefore(current, item.nextSibling);
-            } else {
-              item.parentNode.insertBefore(current, item);
-            }
-          }
-      })
-      
-      item.addEventListener('dragend', function() {
-        for (let it of items) {
-          it.classList.remove("hint");      
-        }
-      });
-
-      item.ondragover = (e) => e.preventDefault();
     }
-  })
-}
+  }  
+
+  replaceDragging() {
+    this.draggingProection.replaceWith(this.draggingElement.element);
+    this.draggingElement.element.style = this.draggingElement.styles;
+  }
+
+  clear() {
+    this.draggingElement = null;
+    this.draggingProection = null;
+  }
 
   save() {
     const data = {
@@ -200,6 +191,7 @@ export default class PageController {
       inProgress: [],
       done: [],
     };
+
     const toDoCards = this.toDo.querySelectorAll('.card');
     const inProgressCards = this.inProgress.querySelectorAll('.card');
     const doneCards = this.done.querySelectorAll('.card');
