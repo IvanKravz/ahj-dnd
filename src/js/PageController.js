@@ -10,6 +10,12 @@ export default class PageController {
     this.done = null;
     this.draggingElement = null;
     this.draggingProection = null;
+
+    this.mouseDown = this.mouseDown.bind(this);
+    this.mouseOver = this.mouseOver.bind(this);
+    this.mouseOut = this.mouseOut.bind(this);
+    this.mouseMove = this.mouseMove.bind(this);
+    this.mouseUp = this.mouseUp.bind(this)
   }
 
   init() {
@@ -41,7 +47,6 @@ export default class PageController {
       });
     });
 
-    
     // Удаление текста при добавлении новой карты при нажатии на Add another card
     Array.from(this.pageLoad.cancelBtns).forEach((elem) => {
       elem.addEventListener('click', (event) => {
@@ -68,11 +73,11 @@ export default class PageController {
       item.reset();
       item.classList.remove('active');
     }));
+  }
 
-    
-    // При наведении мыши на область карты
-    this.pageLoad.cardsContainer.addEventListener('mouseover', (event) => {
-      event.preventDefault();
+  // При наведении мыши на область карты
+  mouseOver(event) {
+    event.preventDefault();
 
       const card = event.target.classList.contains('card');
       if (!card) {
@@ -81,72 +86,80 @@ export default class PageController {
       const cardEl = event.target;
       const delBtn = cardEl.querySelector('.delete-btn');
       delBtn.classList.remove('hide');
-    });
+  }
 
-    // При покидании мыши области карты
-    this.pageLoad.cardsContainer.addEventListener('mouseout', (event) => {
-      event.preventDefault();
-      const cardEl = event.target;
-      const card = cardEl.classList.contains('card');
+  // При покидании мыши области карты
+  mouseOut(event) {
+    event.preventDefault();
+    const cardEl = event.target;
+    const card = cardEl.classList.contains('card');
+    
+    if (!card) {
+      return;
+    }
+    
+    const currentEl = event.relatedTarget;
+    if (currentEl === null) {
+      return
+    }
+
+    if (!(card && currentEl.classList.contains('delete-btn'))) {
+      const delBtn = cardEl.querySelector('.delete-btn');
+      delBtn.classList.add('hide');
+    }
+  }
+
+  // При нажатии мыши на область карты
+  mouseDown(event) {
+    const target = event.target;
       
-      if (!card) {
-        return;
-      }
-      
-      const currentEl = event.relatedTarget;
-      if (!(card && currentEl.classList.contains('delete-btn'))) {
-        const delBtn = cardEl.querySelector('.delete-btn');
+    if (target.classList.contains('card')) {
+      this.shiftX = event.offsetX;
+      this.shiftY = event.offsetY;
+      this.setDraggingElement(target);
+      this.draggingElement.style = `
+        left: ${event.pageX - this.shiftX}px;
+        top: ${event.pageY - this.shiftY}px;
+      `
+      this.proectionAct(event)
+    }
+
+    if (target.closest('.delete-btn')) {
+      PageLoad.deleteCard(target);
+    }
+  }
+
+  // При перемещении карты
+  mouseMove(event) {
+    const target = event.target;
+    if (this.draggingElement) {
+      if (target.classList.contains('card')) {
+        const delBtn = target.querySelector('.delete-btn');
         delBtn.classList.add('hide');
       }
-    });
+      document.body.classList.add("grabbing");
+      const { pageX, pageY } = event;
+      const element = this.draggingElement;
+      const  { width, height } = this.draggingElement.styles;
+      element.styles = `
+        position: absolute;
+        left: ${pageX - this.shiftX}px;
+        top: ${pageY - this.shiftY}px;
+        pointer-events: none;
+        width: ${width};
+        height: ${height}; 
+      `
+    this.proectionAct(event);
+    }
+  }
 
-    // При нажатии мыши на область карты
-    this.pageLoad.cardsContainer.addEventListener('mousedown', (event) => {
-      const target = event.target;
-      
-      if (target.classList.contains('card')) {
-        this.shiftX = event.offsetX;
-        this.shiftY = event.offsetY;
-        this.setDraggingElement(target)
-        this.draggingElement.style = `
-          left: ${event.pageX - this.shiftX}px;
-          top: ${event.pageY - this.shiftY}px;
-        `
-        this.proectionAct(event)
-      }
-
-      if (target.closest('.delete-btn')) {
-        PageLoad.deleteCard(target);
-      }
-    })
-
-    // При перемещении карты
-    this.pageLoad.cardsContainer.addEventListener('mousemove', (event) => {
-      if (this.draggingElement) {
-        document.body.classList.add("grabbing");
-        const { pageX, pageY } = event;
-        const element = this.draggingElement;
-        const  { width, height } = this.draggingElement.styles;
-        element.styles = `
-          position: absolute;
-          left: ${pageX - this.shiftX}px;
-          top: ${pageY - this.shiftY}px;
-          pointer-events: none;
-          width: ${width};
-          height: ${height}; 
-        `
-      this.proectionAct(event);
-      }
-    })
-
-    // Кнопка мыши отпущена 
-    this.pageLoad.cardsContainer.addEventListener('mouseup', () => {
-      if (this.draggingElement) {
-        document.body.classList.remove("grabbing");
-        this.replaceDragging();
-        this.clear();
-      }
-    })
+  // Кнопка мыши отпущена 
+  mouseUp() {
+    if (this.draggingElement) {
+      document.body.classList.remove("grabbing");
+      this.replaceDragging();
+      this.clear();
+    }
   }
 
   setDraggingElement(node) {
@@ -157,7 +170,9 @@ export default class PageController {
   proectionAct(event) {
     const target = event.target;
     const element = this.draggingElement;
-    const proection = this.draggingProection
+    const proection = this.draggingProection;
+    const cards = target.closest('.cards');
+    
     if (
       target.classList.contains('card') && !target.classList.contains('proection')
     ) {
@@ -172,6 +187,9 @@ export default class PageController {
           proection.remove();
           target.insertAdjacentElement(appendPosition, proection);
         }
+    }
+    if (cards && cards.children.length === 0) {
+      cards.append(proection);
     }
   }  
 
